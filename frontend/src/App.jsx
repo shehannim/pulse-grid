@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Grid, OrbitControls, Html, Float, Line } from '@react-three/drei'
+import Markets from './Markets.jsx'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 /* ink, signal red, brass, slate blue, forest, oxblood */
@@ -101,6 +102,7 @@ export default function App() {
   const [sort, setSort] = useState('top')
   const [sel, setSel] = useState(null)
   const [hov, setHov] = useState(null)
+  const [view, setView] = useState('front')
   const searchRef = useRef()
 
   const load = () => fetch(`${API}/api/pulse?limit=18`).then(r => r.json()).then(d => {
@@ -141,6 +143,7 @@ export default function App() {
   return (
     <div className="stage">
       <div className="grain" />
+      {view === 'front' && (
       <div className="bg3d">
         <Canvas camera={{ position: [0, 2.8, 11.5], fov: 55 }} dpr={[1, 2]}>
           <color attach="background" args={['#f2ecdf']} />
@@ -153,6 +156,7 @@ export default function App() {
           <OrbitControls enableZoom enablePan={false} minDistance={5} maxDistance={22} autoRotate autoRotateSpeed={0.35} />
         </Canvas>
       </div>
+      )}
 
       <div className="hud">
         <header className="masthead sheet">
@@ -165,6 +169,12 @@ export default function App() {
           </div>
         </header>
 
+        <nav className="sections sheet">
+          <button className={view === 'front' ? 'sec active' : 'sec'} onClick={() => setView('front')}>❦ Front Page</button>
+          <button className={view === 'markets' ? 'sec active' : 'sec'} onClick={() => setView('markets')}>$ The Ledger — Markets</button>
+        </nav>
+
+        {view === 'front' ? (<>
         <aside className="desk sheet">
           <h3>The Newsdesk</h3>
           <input ref={searchRef} className="search" placeholder="Search the wire…  ( / )" value={query} onChange={e => setQuery(e.target.value)} />
@@ -203,6 +213,7 @@ export default function App() {
             ))}
           </div>
         </footer>
+        </>) : (<Markets />)}
       </div>
     </div>
   )
