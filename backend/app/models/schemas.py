@@ -9,6 +9,7 @@ class PulseItem(BaseModel):
     score: int = 0
     cluster: int = 0
     keywords: list[str] = []
+    published_at: int = 0
 
 
 class PulseResponse(BaseModel):

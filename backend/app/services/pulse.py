@@ -37,7 +37,8 @@ async def fetch_hn(limit: int = 12) -> list[dict]:
                     if d and d.get("title"):
                         out.append({"id": f"hn-{i}", "title": d["title"],
                                     "url": d.get("url", ""), "source": "hackernews",
-                                    "score": int(d.get("score", 0))})
+                                    "score": int(d.get("score", 0)),
+                                    "published_at": int(d.get("time", 0))})
                 except Exception:
                     continue
             if out:
