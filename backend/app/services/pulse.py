@@ -2,8 +2,6 @@
 from __future__ import annotations
 import re
 import httpx
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.cluster import KMeans
 
 STOP = set("the a an and or of to in on for with is are was as by at from this that it".split())
 
@@ -49,16 +47,32 @@ async def fetch_hn(limit: int = 12) -> list[dict]:
     return []
 
 
+def tokens(title: str) -> set[str]:
+    return {w for w in re.findall(r"[a-zA-Z]{4,}", title.lower()) if w not in STOP}
+
+
 def clusterize(items: list[dict], k: int = 4) -> list[dict]:
+    """Lightweight greedy Jaccard clustering — no numpy/sklearn needed."""
     if not items:
         return items
-    titles = [x["title"] for x in items]
     k = max(1, min(k, len(items)))
-    try:
-        X = TfidfVectorizer(stop_words="english", max_features=200).fit_transform(titles)
-        labels = KMeans(n_clusters=k, n_init=10, random_state=7).fit_predict(X)
-    except Exception:
-        labels = [i % k for i in range(len(items))]
+    tokenized = [tokens(x["title"]) for x in items]
+    centers: list[set[str]] = []
+    labels: list[int] = []
+    for toks in tokenized:
+        best, best_sim = -1, 0.0
+        for ci, c in enumerate(centers):
+            union = toks | c
+            sim = len(toks & c) / len(union) if union else 0.0
+            if sim > best_sim:
+                best, best_sim = ci, sim
+        if best >= 0 and best_sim >= 0.15:
+            labels.append(best)
+        elif len(centers) < k:
+            centers.append(toks)
+            labels.append(len(centers) - 1)
+        else:
+            labels.append(len(toks) % k if toks else 0)
     for item, lab in zip(items, labels):
         item["cluster"] = int(lab)
         item["keywords"] = keywords(item["title"])
