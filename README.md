@@ -1,4 +1,4 @@
-# ⚡ PulseGrid — Realtime Open-Source Pulse
+# PulseGrid — Realtime Open-Source Pulse
 
 Live Hacker News feed + TF-IDF / KMeans clustering, pushed over **WebSockets**. No API keys. Works offline with seed data.
 
