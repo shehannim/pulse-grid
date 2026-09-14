@@ -1,50 +1,116 @@
 from pydantic import BaseModel
 
 
-class PulseItem(BaseModel):
-    id: str
-    title: str
-    url: str = ""
-    source: str = "seed"
-    score: int = 0
-    cluster: int = 0
-    keywords: list[str] = []
-    published_at: int = 0
-
-
-class PulseResponse(BaseModel):
-    count: int
-    clusters: int
-    items: list[PulseItem]
-
-
-class StockQuote(BaseModel):
-    symbol: str
-    name: str
-    price: float = 0
+class IndexQuote(BaseModel):
+    value: float = 0
     change: float = 0
     change_pct: float = 0
-    as_of: str = ""
-    spark: list[float] = []
+    high: float = 0
+    low: float = 0
 
 
-class StocksResponse(BaseModel):
-    count: int = 0
-    indices: list[StockQuote] = []
-    stocks: list[StockQuote] = []
+class OverviewResponse(BaseModel):
+    market_status: str = "Unknown"
+    is_open: bool = False
+    aspi: IndexQuote = IndexQuote()
+    sl20: IndexQuote = IndexQuote()
+    turnover: float = 0
+    share_volume: int = 0
+    trades: int = 0
+    listed_traded: int = 0
+    advances: int = 0
+    declines: int = 0
     stale: bool = False
 
 
-class MarketNewsItem(BaseModel):
-    id: str
-    title: str
-    url: str = ""
-    points: int = 0
-    author: str = ""
-    published_at: int = 0
+class HeatmapTile(BaseModel):
+    symbol: str
+    short: str = ""
+    name: str = ""
+    price: float = 0
+    change: float = 0
+    change_pct: float = 0
+    prev_close: float = 0
+    open: float = 0
+    high: float = 0
+    low: float = 0
+    volume: int = 0
+    turnover: float = 0
+    trades: int = 0
+    market_cap: float = 0
+    sector: str = "Others"
 
 
-class MarketNewsResponse(BaseModel):
-    query: str = ""
+class SectorAgg(BaseModel):
+    name: str
     count: int = 0
-    items: list[MarketNewsItem] = []
+    market_cap: float = 0
+    turnover: float = 0
+
+
+class HeatmapResponse(BaseModel):
+    count: int = 0
+    advances: int = 0
+    declines: int = 0
+    unchanged: int = 0
+    sectors: list[SectorAgg] = []
+    tiles: list[HeatmapTile] = []
+    stale: bool = False
+
+
+class MoverItem(BaseModel):
+    symbol: str
+    short: str = ""
+    name: str = ""
+    price: float = 0
+    change: float = 0
+    change_pct: float = 0
+    volume: int = 0
+    turnover: float = 0
+    sector: str = "Others"
+
+
+class MoversResponse(BaseModel):
+    gainers: list[MoverItem] = []
+    losers: list[MoverItem] = []
+    most_active: list[MoverItem] = []
+    stale: bool = False
+
+
+class SectorIndex(BaseModel):
+    name: str = ""
+    symbol: str = ""
+    index: float = 0
+    change: float = 0
+    change_pct: float = 0
+    turnover: float = 0
+    volume: int = 0
+    trades: int = 0
+
+
+class SectorsResponse(BaseModel):
+    count: int = 0
+    sectors: list[SectorIndex] = []
+    stale: bool = False
+
+
+class QuoteResponse(BaseModel):
+    symbol: str
+    short: str = ""
+    name: str = ""
+    price: float = 0
+    change: float = 0
+    change_pct: float = 0
+    prev_close: float = 0
+    open: float | None = None
+    high_day: float = 0
+    low_day: float = 0
+    high_52w: float = 0
+    low_52w: float = 0
+    volume: int = 0
+    turnover: float = 0
+    trades: int = 0
+    market_cap: float = 0
+    market_cap_pct: float = 0
+    beta_sl20: float = 0
+    sector: str = "Others"
