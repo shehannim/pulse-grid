@@ -13,6 +13,7 @@ export const api = {
   movers: (limit = 12) => get(`/api/cse/movers?limit=${limit}`),
   sectors: () => get("/api/cse/sectors"),
   quote: (symbol) => get(`/api/cse/quote/${encodeURIComponent(symbol)}`),
+  chart: (symbol, period = "1Y") => get(`/api/cse/chart/${encodeURIComponent(symbol)}?period=${period}`),
   wsURL: () => api.base.replace(/^http/, "ws") + "/ws/cse",
 };
 

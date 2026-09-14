@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, fmtMoney, fmtNum, fmtInt } from "./api.js";
 import Heatmap from "./Heatmap.jsx";
+import Drop from "./Drop.jsx";
+import TopBar from "./TopBar.jsx";
+import Detail from "./Detail.jsx";
 
 const SIZE_OPTS = [
   { k: "market_cap", label: "Market cap" },
   { k: "turnover", label: "Turnover" },
   { k: "volume", label: "Volume" },
+];
+const COLOR_OPTS = [
+  { k: "pct", label: "Day change %" },
+  { k: "abs", label: "Day change Rs" },
 ];
 
 function IndexCard({ name, q }) {
@@ -21,65 +28,33 @@ function IndexCard({ name, q }) {
   );
 }
 
-function Movers({ movers }) {
+function Movers({ movers, onPick }) {
   const cols = [
-    ["Top gainers", movers.gainers, true],
-    ["Top losers", movers.losers, false],
-    ["Most active", movers.most_active, null],
+    ["Top gainers", movers.gainers],
+    ["Top losers", movers.losers],
+    ["Most active", movers.most_active],
   ];
   return (
     <div className="movergrid">
-      {cols.map(([title, arr, happy]) => (
+      {cols.map(([title, arr]) => (
         <section key={title} className="panel">
           <h3>{title}</h3>
           {(arr || []).map((m, i) => (
-            <a key={m.symbol} className="mrow" href={`https://www.cse.lk/pages/company-profile/company-profile.component.html?symbol=${m.symbol}`} target="_blank" rel="noreferrer">
+            <button key={m.symbol} className="mrow" onClick={() => onPick(m.symbol)}>
               <span className="rank">{i + 1}</span>
               <span className="mbody">
                 <b>{m.short} <em>{m.name.slice(0, 28)}</em></b>
                 <span>Rs {fmtNum(m.price)} · Vol {fmtInt(m.volume)}</span>
               </span>
-              <span className={happy == null ? "flat" : (m.change_pct >= 0 ? "up" : "down")}>
+              <span className={m.change_pct >= 0 ? "up" : "down"}>
                 {m.change_pct >= 0 ? "+" : ""}{fmtNum(m.change_pct)}%
               </span>
-            </a>
+            </button>
           ))}
           {(!arr || !arr.length) && <p className="fine">No data.</p>}
         </section>
       ))}
     </div>
-  );
-}
-
-function QuoteDrawer({ symbol, onClose }) {
-  const [q, setQ] = useState(null);
-  const [err, setErr] = useState("");
-  useEffect(() => {
-    if (!symbol) return;
-    setQ(null); setErr("");
-    api.quote(symbol).then(setQ).catch(() => setErr("Quote unavailable."));
-  }, [symbol]);
-  if (!symbol) return null;
-  return (
-    <aside className="drawer">
-      <button className="x" onClick={onClose}>✕</button>
-      {q ? (<>
-        <small>{q.sector} · {q.symbol}</small>
-        <h2>{q.name}</h2>
-        <div className="qprice">Rs {fmtNum(q.price)} <span className={q.change >= 0 ? "up" : "down"}>{q.change >= 0 ? "▲" : "▼"} {fmtNum(Math.abs(q.change))} ({fmtNum(Math.abs(q.change_pct))}%)</span></div>
-        <div className="qgrid">
-          <div><small>Prev close</small><b>Rs {fmtNum(q.prev_close)}</b></div>
-          <div><small>Day range</small><b>{fmtNum(q.low_day)} – {fmtNum(q.high_day)}</b></div>
-          <div><small>52w range</small><b>{fmtNum(q.low_52w)} – {fmtNum(q.high_52w)}</b></div>
-          <div><small>Volume</small><b>{fmtInt(q.volume)}</b></div>
-          <div><small>Turnover</small><b>Rs {fmtMoney(q.turnover)}</b></div>
-          <div><small>Trades</small><b>{fmtInt(q.trades)}</b></div>
-          <div><small>Market cap</small><b>Rs {fmtMoney(q.market_cap)} ({fmtNum(q.market_cap_pct)}%)</b></div>
-          <div><small>Beta vs S&P SL20</small><b>{fmtNum(q.beta_sl20)}</b></div>
-        </div>
-        <a className="readbtn" target="_blank" rel="noreferrer" href={`https://www.cse.lk/pages/company-profile/company-profile.component.html?symbol=${q.symbol}`}>Open on cse.lk ↗</a>
-      </>) : err ? <p className="empty">{err}</p> : <p className="fine">Loading {symbol}…</p>}
-    </aside>
   );
 }
 
@@ -94,6 +69,7 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [sector, setSector] = useState("All");
   const [sizeBy, setSizeBy] = useState("market_cap");
+  const [colorBy, setColorBy] = useState("pct");
   const [topN, setTopN] = useState(150);
   const [sel, setSel] = useState(null);
   const searchRef = useRef();
@@ -151,59 +127,30 @@ export default function App() {
 
   return (
     <div className="cse">
-      <header className="topbar">
-        <div>
-          <small className="kicker">Colombo Stock Exchange · cse.lk feed</small>
-          <h1>CSE Heatmap <span>🇱🇰</span></h1>
-        </div>
-        <div className="statusrow">
-          <span className={"pill" + (ov?.is_open ? " open" : "")}>{ov ? ov.market_status : "connecting…"}</span>
-          <span className={live ? "live on" : "live"}>{live ? "● live (WS)" : "○ polling"}</span>
-          <button className="refresh" onClick={load}>⟳ Refresh</button>
-        </div>
-      </header>
+      <TopBar query={query} setQuery={setQuery} status={ov} live={live} tab={tab} setTab={setTab} searchRef={searchRef} />
 
       <section className="stats">
         <IndexCard name="ASPI — All Share" q={ov?.aspi} />
         <IndexCard name="S&P SL20" q={ov?.sl20} />
         <div className="idx"><small>Turnover</small><b>Rs {fmtMoney(ov?.turnover)}</b><span className="fine">{fmtInt(ov?.share_volume)} shares · {fmtInt(ov?.trades)} trades</span></div>
         <div className="idx"><small>Market breadth</small><b><span className="up">{ov?.advances ?? 0} ▲</span> / <span className="down">{ov?.declines ?? 0} ▼</span></b><span className="fine">{ov?.listed_traded ?? 0} securities traded</span></div>
+        <button className="refresh idxbtn" onClick={load}>⟳ Refresh</button>
       </section>
 
       {err && <p className="warn">{err}</p>}
 
-      <nav className="tabs">
-        {[["map", "◧ Heatmap"], ["movers", "▲▼ Movers"], ["sectors", "◩ Sectors"]].map(([k, l]) => (
-          <button key={k} className={tab === k ? "tab active" : "tab"} onClick={() => setTab(k)}>{l}</button>
-        ))}
-        <span className="fine right">LKR · {hm.count} symbols · {filtered.length} shown</span>
-      </nav>
-
       {tab === "map" && (<>
         <div className="tvtoolbar">
-          <input ref={searchRef} className="search" placeholder="Search symbol or company…  ( / )" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <label>Block size
-            <select value={sizeBy} onChange={(e) => setSizeBy(e.target.value)}>
-              {SIZE_OPTS.map((o) => <option key={o.k} value={o.k}>{o.label}</option>)}
-            </select>
-          </label>
-          <label>Block color
-            <select value="change"><option value="change">Day change</option></select>
-          </label>
-          <label>Grouping
-            <select value={sector} onChange={(e) => setSector(e.target.value)}>
-              <option value="All">Sector</option>
-              {sectorNames.filter((s) => s !== "All").map((s) => <option key={s} value={s}>{s} only</option>)}
-            </select>
-          </label>
-          <select value={topN} onChange={(e) => setTopN(Number(e.target.value))}>
-            {[60, 100, 150, 250, 300].map((n) => <option key={n} value={n}>Top {n}</option>)}
-          </select>
+          <Drop label="Block size" value={sizeBy} options={SIZE_OPTS} onPick={setSizeBy} />
+          <Drop label="Block color" value={colorBy} options={COLOR_OPTS} onPick={setColorBy} />
+          <Drop label="Grouping" value={sector} options={[{ k: "All", label: "Sector" }, ...sectorNames.filter((s) => s !== "All").map((s) => ({ k: s, label: s }))]} onPick={setSector} />
+          <Drop label="Symbols" value={String(topN)} options={[60, 100, 150, 250, 300].map((n) => ({ k: String(n), label: `Top ${n}` }))} onPick={(v) => setTopN(Number(v))} />
+          <span className="fine right">{hm.count} symbols · {filtered.length} shown</span>
         </div>
-        <Heatmap tiles={filtered} sizeBy={sizeBy} onPick={(t) => setSel(t.symbol)} selected={sel} />
+        <Heatmap tiles={filtered} sizeBy={sizeBy} colorBy={colorBy} onPick={(t) => setSel(t.symbol)} selected={sel} />
       </>)}
 
-      {tab === "movers" && <Movers movers={movers} />}
+      {tab === "movers" && <Movers movers={movers} onPick={setSel} />}
 
       {tab === "sectors" && (
         <section className="panel">
@@ -223,12 +170,11 @@ export default function App() {
         </section>
       )}
 
-      <QuoteDrawer symbol={sel} onClose={() => setSel(null)} />
+      <Detail symbol={sel} onClose={() => setSel(null)} />
 
-      <footer className="foot">
-        Data: unofficial <a href="https://www.cse.lk" target="_blank" rel="noreferrer">cse.lk</a> API
-        (docs: <a href="https://github.com/GH0STH4CKER/Colombo-Stock-Exchange-CSE-API-Documentation" target="_blank" rel="noreferrer">GH0STH4CKER/CSE-API-Documentation</a>).
-        Delayed · educational only, not investment advice.
+      <footer className="tvstatus">
+        <span><i className="dot" /> CSE · Delayed data · educational only, not investment advice</span>
+        <span>Source: unofficial <a href="https://www.cse.lk" target="_blank" rel="noreferrer">cse.lk</a> API · <a href="https://github.com/GH0STH4CKER/Colombo-Stock-Exchange-CSE-API-Documentation" target="_blank" rel="noreferrer">endpoint docs</a></span>
       </footer>
     </div>
   );

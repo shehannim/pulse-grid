@@ -75,14 +75,14 @@ function squarify(items, x, y, w, h) {
   return out;
 }
 
-function p95Scale(tiles) {
-  const a = tiles.map((t) => Math.abs(t.change_pct || 0)).sort((x, y) => x - y);
+function p95Scale(vals) {
+  const a = [...vals].map(Number).filter((v) => !isNaN(v)).map(Math.abs).sort((x, y) => x - y);
   if (!a.length) return 3;
   const v = a[Math.min(a.length - 1, Math.floor(a.length * 0.95))];
-  return Math.max(1, v || 1);
+  return Math.max(v < 0.051 ? 1 : v, 0.5);
 }
 
-export default function Heatmap({ tiles, sizeBy, onPick, selected }) {
+export default function Heatmap({ tiles, sizeBy, colorBy = "pct", onPick, selected }) {
   const ref = useRef(null);
   const [box, setBox] = useState({ w: 1000, h: 620 });
   const [tip, setTip] = useState(null); // {t, x, y}
@@ -102,6 +102,10 @@ export default function Heatmap({ tiles, sizeBy, onPick, selected }) {
     if (sizeBy === "volume") return t.volume || 1;
     return t.market_cap || 1;
   };
+  const cval = (t) => (colorBy === "abs" ? t.change : t.change_pct);
+  const cfmt = (t) => (colorBy === "abs"
+    ? `${t.change >= 0 ? "+" : ""}${fmtNum(t.change)}`
+    : `${t.change_pct >= 0 ? "+" : ""}${fmtNum(t.change_pct)}%`);
 
   const layout = useMemo(() => {
     const groups = new Map();
@@ -126,7 +130,7 @@ export default function Heatmap({ tiles, sizeBy, onPick, selected }) {
     return out;
   }, [tiles, sizeBy, box]);
 
-  const scale = useMemo(() => p95Scale(tiles), [tiles]);
+  const scale = useMemo(() => p95Scale(tiles.map(cval)), [tiles, colorBy]);
 
   if (!tiles.length) return <p className="empty">No symbols match this filter.</p>;
 
@@ -148,13 +152,13 @@ export default function Heatmap({ tiles, sizeBy, onPick, selected }) {
                 <button
                   key={t.symbol}
                   className={"tvtile" + (selected === t.symbol ? " sel" : "")}
-                  style={{ left: t.x, top: t.y, width: t.w, height: t.h, background: tvColor(t.change_pct, scale) }}
+                  style={{ left: t.x, top: t.y, width: t.w, height: t.h, background: tvColor(cval(t), scale) }}
                   onClick={() => onPick(t)}
                   onMouseMove={(e) => setTip({ t, x: e.clientX, y: e.clientY })}
                   onMouseLeave={() => setTip(null)}
                 >
                   {tiny && <span className="tvshort">{t.short}</span>}
-                  {med && <span className="tvpct">{t.change_pct >= 0 ? "+" : ""}{fmtNum(t.change_pct)}%</span>}
+                  {med && <span className="tvpct">{cfmt(t)}</span>}
                   {big && <span className="tvsub">Rs {fmtNum(t.price)}</span>}
                 </button>
               );
@@ -172,10 +176,10 @@ export default function Heatmap({ tiles, sizeBy, onPick, selected }) {
         )}
       </div>
       <div className="tvscale">
-        <span>-{fmtNum(scale)}%</span>
+        <span>{colorBy === "abs" ? "Rs -" : "-"}{fmtNum(scale)}{colorBy === "abs" ? "" : "%"}</span>
         <div className="tvgrad" />
-        <span>+{fmtNum(scale)}%</span>
-        <em>Day change · block size: {sizeBy === "market_cap" ? "market cap" : sizeBy} · {tiles.length} symbols</em>
+        <span>{colorBy === "abs" ? "Rs +" : "+"}{fmtNum(scale)}{colorBy === "abs" ? "" : "%"}</span>
+        <em>{colorBy === "abs" ? "Day change Rs" : "Day change %"} · block size: {sizeBy === "market_cap" ? "market cap" : sizeBy} · {tiles.length} symbols</em>
       </div>
     </>
   );

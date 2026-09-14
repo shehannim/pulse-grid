@@ -30,6 +30,7 @@ Set `VITE_API_URL` in `frontend/.env` for prod, e.g. `VITE_API_URL=https://your-
 - `GET /api/cse/movers?limit=12` → gainers / losers / most active
 - `GET /api/cse/sectors` → CSE sector indices
 - `GET /api/cse/quote/{symbol}` → e.g. `JKH`, `JKH.N0000`, `COMB.X0000`
+- `GET /api/cse/chart/{symbol}?period=1Y` → 1D ticks, 1W / 1M / 3M / 1Y daily OHLC + volume
 - `WS /ws/cse` → pushes `{overview, heatmap}` every 60s
 
 Upstream base: `POST https://www.cse.lk/api/{tradeSummary,todaySharePrice,marketStatus,marketSummery,aspiData,snpData,topGainers,topLooses,mostActiveTrades,allSectors,companyInfoSummery,…}`.
