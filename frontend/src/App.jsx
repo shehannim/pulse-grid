@@ -180,22 +180,25 @@ export default function App() {
       </nav>
 
       {tab === "map" && (<>
-        <div className="controls">
+        <div className="tvtoolbar">
           <input ref={searchRef} className="search" placeholder="Search symbol or company…  ( / )" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <select value={sector} onChange={(e) => setSector(e.target.value)}>
-            {sectorNames.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <select value={sizeBy} onChange={(e) => setSizeBy(e.target.value)}>
-            {SIZE_OPTS.map((o) => <option key={o.k} value={o.k}>Size: {o.label}</option>)}
-          </select>
+          <label>Block size
+            <select value={sizeBy} onChange={(e) => setSizeBy(e.target.value)}>
+              {SIZE_OPTS.map((o) => <option key={o.k} value={o.k}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>Block color
+            <select value="change"><option value="change">Day change</option></select>
+          </label>
+          <label>Grouping
+            <select value={sector} onChange={(e) => setSector(e.target.value)}>
+              <option value="All">Sector</option>
+              {sectorNames.filter((s) => s !== "All").map((s) => <option key={s} value={s}>{s} only</option>)}
+            </select>
+          </label>
           <select value={topN} onChange={(e) => setTopN(Number(e.target.value))}>
             {[60, 100, 150, 250, 300].map((n) => <option key={n} value={n}>Top {n}</option>)}
           </select>
-        </div>
-        <div className="legend">
-          {[["≤ -3%", "#a31515"], ["-1.5%", "#c02a2a"], ["-0.5%", "#d35f5f"], ["Flat", "#3a3f4b"], ["+0.5%", "#6faf7f"], ["+1.5%", "#1e7d46"], ["≥ +3%", "#0a5a2e"]].map(([l, c]) => (
-            <span key={l}><i style={{ background: c }} />{l}</span>
-          ))}
         </div>
         <Heatmap tiles={filtered} sizeBy={sizeBy} onPick={(t) => setSel(t.symbol)} selected={sel} />
       </>)}
