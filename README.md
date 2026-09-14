@@ -1,11 +1,8 @@
-# PulseGrid — Realtime Open-Source Pulse
+# 🇱🇰 CSE Heatmap — Colombo Stock Exchange
 
-Live Hacker News feed + TF-IDF / KMeans clustering, pushed over **WebSockets**. No API keys. Works offline with seed data.
-
-![stack](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
-![ws](https://img.shields.io/badge/WebSocket-00D4FF?style=flat)
-![react](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)
-![sklearn](https://img.shields.io/badge/sklearn-F7931E?style=flat&logo=scikit-learn&logoColor=white)
+Live stock-market heatmap for Sri Lanka's CSE, powered by the unofficial `cse.lk` API
+(documented at [GH0STH4CKER/Colombo-Stock-Exchange-CSE-API-Documentation](https://github.com/GH0STH4CKER/Colombo-Stock-Exchange-CSE-API-Documentation)).
+No API keys. Tiles sized by market cap / turnover / volume, coloured by day % change.
 
 ## Run
 
@@ -27,18 +24,25 @@ Set `VITE_API_URL` in `frontend/.env` for prod, e.g. `VITE_API_URL=https://your-
 
 ## API
 
-- `GET /health` → `{status: ok}`
-- `GET /api/pulse?limit=16` → `{count, clusters, items[]}`
-- `WS /ws/pulse` → pushes full pulse every 30s
+- `GET /health`
+- `GET /api/cse/overview` → market status, ASPI, S&P SL20, turnover, breadth
+- `GET /api/cse/heatmap?limit=200&min_mcap=0` → tiles + sector aggregates
+- `GET /api/cse/movers?limit=12` → gainers / losers / most active
+- `GET /api/cse/sectors` → CSE sector indices
+- `GET /api/cse/quote/{symbol}` → e.g. `JKH`, `JKH.N0000`, `COMB.X0000`
+- `WS /ws/cse` → pushes `{overview, heatmap}` every 60s
 
-Each item: `id, title, url, source, score, cluster, keywords[]`.
+Upstream base: `POST https://www.cse.lk/api/{tradeSummary,todaySharePrice,marketStatus,marketSummery,aspiData,snpData,topGainers,topLooses,mostActiveTrades,allSectors,companyInfoSummery,…}`.
+Responses cached 60s server-side; stale snapshot served if CSE is unreachable.
+
+`backend/app/data/sectors.json` maps CSE symbols → heatmap groups (Banks, Diversified, Consumer, …).
+Unknown symbols fall back to `Others` — extend the file to improve grouping.
 
 ## Deploy
 
 - Backend → Railway (uses `backend/Dockerfile`)
 - Frontend → Vercel (uses `frontend/vercel.json`)
 
-## Next
+## Disclaimer
 
-- [ ] GitHub trending source, search `?q=`, cluster drill-down graph
-- [ ] Star it if useful ⭐
+Delayed, unofficial data for education only — not investment advice. Verify against cse.lk.
