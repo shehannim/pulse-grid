@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.models.schemas import (
+    ChartResponse,
     HeatmapResponse,
     MoversResponse,
     OverviewResponse,
@@ -58,6 +59,14 @@ async def quote(symbol: str):
     if not q:
         raise HTTPException(status_code=404, detail=f"Symbol not found: {symbol}")
     return q
+
+
+@app.get("/api/cse/chart/{symbol}", response_model=ChartResponse)
+async def chart(symbol: str, period: str = "1Y"):
+    c = await cse.get_chart(symbol, period)
+    if not c:
+        raise HTTPException(status_code=404, detail=f"No chart data: {symbol} {period}")
+    return c
 
 
 @app.websocket("/ws/cse")

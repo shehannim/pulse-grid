@@ -114,6 +114,50 @@ async def fetch_sectors_raw() -> list[dict]:
     return await _cached("sectors", go) or []
 
 
+async def stock_id_map() -> dict[str, int]:
+    """CSE tradeSummary `id` doubles as the chart-API stockId."""
+    rows = await fetch_trade_summary()
+    return {str(x.get("symbol")): int(x.get("id")) for x in rows if x.get("symbol") and x.get("id")}
+
+
+CHART_PERIODS = {"1D": "1", "1W": "2", "1M": "3", "3M": "4", "1Y": "5"}
+
+
+async def get_chart(symbol: str, period: str = "1Y") -> dict | None:
+    code = CHART_PERIODS.get(period.upper(), "5")
+    sym = symbol.strip().upper()
+    if "." not in sym:
+        sym += ".N0000"
+    ids = await stock_id_map()
+    sid = ids.get(sym)
+    if not sid:
+        # voting-rights fallback: try the .N0000 twin
+        sid = ids.get(sym.split(".")[0] + ".N0000")
+    if not sid:
+        return None
+    async with await _client() as c:
+        d = await _post(c, "companyChartDataByStock", {"stockId": str(sid), "period": code})
+    if not isinstance(d, dict):
+        return None
+    rows = d.get("chartData") or []
+    pts = []
+    for r in rows:
+        try:
+            p = float(r.get("p") or 0)
+            if p <= 0:
+                continue
+            pt = {"t": int(r.get("t") or 0), "close": p, "volume": int(float(r.get("q") or 0))}
+            if code != "1":
+                pt["high"] = float(r.get("h") or p)
+                pt["low"] = float(r.get("l") or p)
+            pts.append(pt)
+        except (TypeError, ValueError):
+            continue
+    if not pts:
+        return None
+    return {"symbol": sym, "period": period.upper(), "count": len(pts), "points": pts}
+
+
 # ---------- normalized views ----------
 
 def _tile(x: dict) -> dict:

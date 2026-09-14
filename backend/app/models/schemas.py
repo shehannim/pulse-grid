@@ -114,3 +114,18 @@ class QuoteResponse(BaseModel):
     market_cap_pct: float = 0
     beta_sl20: float = 0
     sector: str = "Others"
+
+
+class ChartPoint(BaseModel):
+    t: int = 0  # epoch ms
+    close: float = 0
+    high: float | None = None
+    low: float | None = None
+    volume: int = 0
+
+
+class ChartResponse(BaseModel):
+    symbol: str
+    period: str = "1Y"
+    count: int = 0
+    points: list[ChartPoint] = []
